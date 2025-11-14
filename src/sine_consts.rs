@@ -1,0 +1,87 @@
+// Sine consts
+pub const FF11: u64 = 0xd76aa478;
+pub const FF12: u64 = 0xe8c7b756;
+pub const FF13: u64 = 0x242070db;
+pub const FF14: u64 = 0xc1bdceee;
+pub const FF21: u64 = 0xf57c0faf;
+pub const FF22: u64 = 0x4787c62a;
+pub const FF23: u64 = 0xa8304613;
+pub const FF24: u64 = 0xfd469501;
+pub const FF31: u64 = 0x698098d8;
+pub const FF32: u64 = 0x8b44f7af;
+pub const FF33: u64 = 0xffff5bb1;
+pub const FF34: u64 = 0x895cd7be;
+pub const FF41: u64 = 0x6b901122;
+pub const FF42: u64 = 0xfd987193;
+pub const FF43: u64 = 0xa679438e;
+pub const FF44: u64 = 0x49b40821;
+
+pub const GG11: u64 = 0xf61e2562;
+pub const GG12: u64 = 0xc040b340;
+pub const GG13: u64 = 0x265e5a51;
+pub const GG14: u64 = 0xe9b6c7aa;
+pub const GG21: u64 = 0xd62f105d;
+pub const GG22: u64 = 0x02441453;
+pub const GG23: u64 = 0xd8a1e681;
+pub const GG24: u64 = 0xe7d3fbc8;
+pub const GG31: u64 = 0x21e1cde6;
+pub const GG32: u64 = 0xc33707d6;
+pub const GG33: u64 = 0xf4d50d87;
+pub const GG34: u64 = 0x455a14ed;
+pub const GG41: u64 = 0xa9e3e905;
+pub const GG42: u64 = 0xfcefa3f8;
+pub const GG43: u64 = 0x676f02d9;
+pub const GG44: u64 = 0x8d2a4c8a;
+
+pub const HH11: u64 = 0xfffa3942;
+pub const HH12: u64 = 0x8771f681;
+pub const HH13: u64 = 0x6d9d6122;
+pub const HH14: u64 = 0xfde5380c;
+pub const HH21: u64 = 0xa4beea44;
+pub const HH22: u64 = 0x4bdecfa9;
+pub const HH23: u64 = 0xf6bb4b60;
+pub const HH24: u64 = 0xbebfbc70;
+pub const HH31: u64 = 0x289b7ec6;
+pub const HH32: u64 = 0xeaa127fa;
+pub const HH33: u64 = 0xd4ef3085;
+pub const HH34: u64 = 0x04881d05;
+pub const HH41: u64 = 0xd9d4d039;
+pub const HH42: u64 = 0xe6db99e5;
+pub const HH43: u64 = 0x1fa27cf8;
+pub const HH44: u64 = 0xc4ac5665;
+
+pub const II11: u64 = 0xf4292244;
+pub const II12: u64 = 0x432aff97;
+pub const II13: u64 = 0xab9423a7;
+pub const II14: u64 = 0xfc93a039;
+pub const II21: u64 = 0x655b59c3;
+pub const II22: u64 = 0x8f0ccc92;
+pub const II23: u64 = 0xffeff47d;
+pub const II24: u64 = 0x85845dd1;
+pub const II31: u64 = 0x6fa87e4f;
+pub const II32: u64 = 0xfe2ce6e0;
+pub const II33: u64 = 0xa3014314;
+pub const II34: u64 = 0x4e0811a1;
+pub const II41: u64 = 0xf7537e82;
+pub const II42: u64 = 0xbd3af235;
+pub const II43: u64 = 0x2ad7d2bb;
+pub const II44: u64 = 0xeb86d391;
+// End of sine consts
+
+// S consts
+pub const S11: u64 = 7;
+pub const S12: u64 = 12;
+pub const S13: u64 = 17;
+pub const S14: u64 = 22;
+pub const S21: u64 = 5;
+pub const S22: u64 = 9;
+pub const S23: u64 = 14;
+pub const S24: u64 = 20;
+pub const S31: u64 = 4;
+pub const S32: u64 = 11;
+pub const S33: u64 = 16;
+pub const S34: u64 = 23;
+pub const S41: u64 = 6;
+pub const S42: u64 = 10;
+pub const S43: u64 = 15;
+pub const S44: u64 = 21;

@@ -1,3 +1,10 @@
+mod rounds;
+mod sine_consts;
+
+use sine_consts::*;
+
 fn main() {
-    println!("Hello, world!");
+    let msg = "ABCD";
+    let msg_bytes = msg.as_bytes().to_vec();
+    let padded_bytes = pad_message(msg_bytes);
 }
