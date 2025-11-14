@@ -1,3 +1,5 @@
+use crate::sine_consts::*;
+
 const A: u32 = 0x67452301;
 const B: u32 = 0xefcdab89;
 const C: u32 = 0x98badcfe;
@@ -22,10 +24,10 @@ impl Md5Hash {
     }
 
     fn process_msg(&mut self, blocks: Vec<[u8; 16]>) {
-        let mut a = A;
-        let mut b = B;
-        let mut c = C;
-        let mut d = D;
+        let mut a = A as u64;
+        let mut b = B as u64;
+        let mut c = C as u64;
+        let mut d = D as u64;
         for i in 0..blocks.len() {
             let block: [u64; 16] = blocks[i]
                 .iter()
@@ -33,14 +35,15 @@ impl Md5Hash {
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap();
-            let aa = A;
-            let bb = B;
-            let cc = C;
-            let dd = D;
+            let aa = A as u64;
+            let bb = B as u64;
+            let cc = C as u64;
+            let dd = D as u64;
+
+            // Round 1
+            ff(&mut a, &mut b, &mut c, &mut d, &block, 0, S11, FF11);
         }
     }
-
-    fn round1(&mut self) {}
 }
 
 fn pad_message(mut bytes: Vec<u8>) -> Vec<u8> {
@@ -89,4 +92,10 @@ fn h(x: u64, y: u64, z: u64) -> u64 {
 
 fn i(x: u64, y: u64, z: u64) -> u64 {
     y ^ (x | !z)
+}
+
+fn ff(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64], k: usize, s: u64, t: u64) {
+    let temp = (*a + f(*b, *c, *d) + block[k] + t) & (u32::MAX as u64);
+    let temp = rotate_left(temp, s);
+    *a = (*b + temp) & (u32::MAX as u64);
 }

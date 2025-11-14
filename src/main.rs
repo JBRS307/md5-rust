@@ -6,5 +6,4 @@ use sine_consts::*;
 fn main() {
     let msg = "ABCD";
     let msg_bytes = msg.as_bytes().to_vec();
-    let padded_bytes = pad_message(msg_bytes);
 }
