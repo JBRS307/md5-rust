@@ -1,5 +1,3 @@
-use std::u32;
-
 use crate::sine_consts::*;
 
 const A: u32 = 0x67452301;
@@ -8,46 +6,72 @@ const C: u32 = 0x98badcfe;
 const D: u32 = 0x10325476;
 
 pub struct Md5Hash {
-    bytes: Option<Vec<u8>>,
-    hex_digest: Option<String>,
+    bytes: Vec<u8>,
+    hex_digest: String,
 }
 
 impl Md5Hash {
     pub fn hash(msg_bytes: &[u8]) -> Self {
         let bytes = pad_message(msg_bytes.to_vec());
         let blocks = split_to_blocks(bytes);
+        let hashed_bytes = process_msg(blocks);
 
-        let mut md5 = Self {
-            bytes: None,
-            hex_digest: None,
-        };
-
-        todo!()
+        let hex_digest = hex_digest(&hashed_bytes);
+        Self {
+            bytes: hashed_bytes,
+            hex_digest,
+        }
     }
 
-    fn process_msg(&mut self, blocks: Vec<[u8; 16]>) {
-        let mut a = A as u64;
-        let mut b = B as u64;
-        let mut c = C as u64;
-        let mut d = D as u64;
-        for block in blocks {
-            let block: [u64; 16] = block
-                .iter()
-                .map(|elem| *elem as u64)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap();
-            let aa = A as u64;
-            let bb = B as u64;
-            let cc = C as u64;
-            let dd = D as u64;
+    pub fn hex_digest(&self) -> &str {
+        &self.hex_digest
+    }
 
-            // Round 1
-            ff(&mut a, &mut b, &mut c, &mut d, &block, 0, S11, FF11);
-        }
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
     }
 }
 
+fn process_msg(blocks: Vec<[u32; 16]>) -> Vec<u8> {
+    let mut a = A as u64;
+    let mut b = B as u64;
+    let mut c = C as u64;
+    let mut d = D as u64;
+    for block in blocks {
+        let block: [u64; 16] = block
+            .iter()
+            .map(|elem| *elem as u64)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        let aa = a;
+        let bb = b;
+        let cc = c;
+        let dd = d;
+
+        round1(&mut a, &mut b, &mut c, &mut d, &block);
+        round2(&mut a, &mut b, &mut c, &mut d, &block);
+        round3(&mut a, &mut b, &mut c, &mut d, &block);
+        round4(&mut a, &mut b, &mut c, &mut d, &block);
+
+        a = (a + aa) & (u32::MAX as u64);
+        b = (b + bb) & (u32::MAX as u64);
+        c = (c + cc) & (u32::MAX as u64);
+        d = (d + dd) & (u32::MAX as u64);
+    }
+    let a = a as u32;
+    let b = b as u32;
+    let c = c as u32;
+    let d = d as u32;
+
+    let mut output = vec![];
+    output.extend(a.to_le_bytes());
+    output.extend(b.to_le_bytes());
+    output.extend(c.to_le_bytes());
+    output.extend(d.to_le_bytes());
+
+    output
+}
 fn pad_message(mut bytes: Vec<u8>) -> Vec<u8> {
     let original_length = bytes.len() as u64;
     if bytes.len() % 64 != 56 {
@@ -56,22 +80,22 @@ fn pad_message(mut bytes: Vec<u8>) -> Vec<u8> {
             bytes.push(0);
         }
     }
-    for i in (0..8 as u64).rev() {
-        const FULL: u64 = 0xff;
-        let mask = FULL << (8 * i);
-        let byte = ((mask & original_length) >> (8 * i)) as u8;
-        bytes.push(byte);
-    }
+    println!("{:?}", (original_length * 8).to_le_bytes());
+    bytes.extend((original_length * 8).to_le_bytes());
     bytes
 }
 
-fn split_to_blocks(bytes: Vec<u8>) -> Vec<[u8; 16]> {
-    assert_eq!(bytes.len() % 16, 0);
+fn split_to_blocks(bytes: Vec<u8>) -> Vec<[u32; 16]> {
+    assert_eq!(bytes.len() % 64, 0);
 
     let mut blocks = vec![];
-    for i in (0..bytes.len()).step_by(16) {
-        let block: [u8; 16] = bytes[i..i + 16].try_into().unwrap();
-        blocks.push(block);
+    for i in (0..bytes.len()).step_by(64) {
+        let mut block = vec![];
+        for j in (i..i + 64).step_by(4) {
+            let word = u32::from_le_bytes([bytes[j], bytes[j + 1], bytes[j + 2], bytes[j + 3]]);
+            block.push(word);
+        }
+        blocks.push(block.try_into().unwrap());
     }
     blocks
 }
@@ -81,11 +105,13 @@ fn rotate_left(x: u64, s: u64) -> u64 {
 }
 
 fn f(x: u64, y: u64, z: u64) -> u64 {
-    (x & y) | (!x & z)
+    const FULL: u64 = u32::MAX as u64;
+    (x & y) | ((!x & FULL) & z)
 }
 
 fn g(x: u64, y: u64, z: u64) -> u64 {
-    (x & z) | (y & !z)
+    const FULL: u64 = u32::MAX as u64;
+    (x & z) | (y & (!z & FULL))
 }
 
 fn h(x: u64, y: u64, z: u64) -> u64 {
@@ -93,9 +119,11 @@ fn h(x: u64, y: u64, z: u64) -> u64 {
 }
 
 fn i(x: u64, y: u64, z: u64) -> u64 {
-    y ^ (x | !z)
+    const FULL: u64 = u32::MAX as u64;
+    y ^ (x | (!z & FULL))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn md5_round(
     a: &mut u64,
     b: &mut u64,
@@ -113,77 +141,25 @@ fn md5_round(
 }
 
 fn round1(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    md5_round(a, b, c, d, block, 0, S11, FF11, f);
-    md5_round(a, b, c, d, block, 1, S12, FF12, f);
-    md5_round(a, b, c, d, block, 2, S13, FF13, f);
-    md5_round(a, b, c, d, block, 3, S14, FF14, f);
-    md5_round(a, b, c, d, block, 4, S21, FF21, f);
-    md5_round(a, b, c, d, block, 5, S22, FF22, f);
-    md5_round(a, b, c, d, block, 6, S23, FF23, f);
-    md5_round(a, b, c, d, block, 7, S24, FF24, f);
-    md5_round(a, b, c, d, block, 8, S31, FF31, f);
-    md5_round(a, b, c, d, block, 9, S32, FF32, f);
-    md5_round(a, b, c, d, block, 10, S33, FF33, f);
-    md5_round(a, b, c, d, block, 11, S34, FF34, f);
-    md5_round(a, b, c, d, block, 12, S41, FF41, f);
-    md5_round(a, b, c, d, block, 13, S42, FF42, f);
-    md5_round(a, b, c, d, block, 14, S43, FF43, f);
-    md5_round(a, b, c, d, block, 15, S44, FF44, f);
+    todo!()
 }
 
 fn round2(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    md5_round(a, b, c, d, block, 0, S11, GG11, g);
-    md5_round(a, b, c, d, block, 1, S12, GG12, g);
-    md5_round(a, b, c, d, block, 2, S13, GG13, g);
-    md5_round(a, b, c, d, block, 3, S14, GG14, g);
-    md5_round(a, b, c, d, block, 4, S21, GG21, g);
-    md5_round(a, b, c, d, block, 5, S22, GG22, g);
-    md5_round(a, b, c, d, block, 6, S23, GG23, g);
-    md5_round(a, b, c, d, block, 7, S24, GG24, g);
-    md5_round(a, b, c, d, block, 8, S31, GG31, g);
-    md5_round(a, b, c, d, block, 9, S32, GG32, g);
-    md5_round(a, b, c, d, block, 10, S33, GG33, g);
-    md5_round(a, b, c, d, block, 11, S34, GG34, g);
-    md5_round(a, b, c, d, block, 12, S41, GG41, g);
-    md5_round(a, b, c, d, block, 13, S42, GG42, g);
-    md5_round(a, b, c, d, block, 14, S43, GG43, g);
-    md5_round(a, b, c, d, block, 15, S44, GG44, g);
+    todo!()
 }
 
 fn round3(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    md5_round(a, b, c, d, block, 0, S11, HH11, h);
-    md5_round(a, b, c, d, block, 1, S12, HH12, h);
-    md5_round(a, b, c, d, block, 2, S13, HH13, h);
-    md5_round(a, b, c, d, block, 3, S14, HH14, h);
-    md5_round(a, b, c, d, block, 4, S21, HH21, h);
-    md5_round(a, b, c, d, block, 5, S22, HH22, h);
-    md5_round(a, b, c, d, block, 6, S23, HH23, h);
-    md5_round(a, b, c, d, block, 7, S24, HH24, h);
-    md5_round(a, b, c, d, block, 8, S31, HH31, h);
-    md5_round(a, b, c, d, block, 9, S32, HH32, h);
-    md5_round(a, b, c, d, block, 10, S33, HH33, h);
-    md5_round(a, b, c, d, block, 11, S34, HH34, h);
-    md5_round(a, b, c, d, block, 12, S41, HH41, h);
-    md5_round(a, b, c, d, block, 13, S42, HH42, h);
-    md5_round(a, b, c, d, block, 14, S43, HH43, h);
-    md5_round(a, b, c, d, block, 15, S44, HH44, h);
+    todo!()
 }
 
 fn round4(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    md5_round(a, b, c, d, block, 0, S11, II11, i);
-    md5_round(a, b, c, d, block, 1, S12, II12, i);
-    md5_round(a, b, c, d, block, 2, S13, II13, i);
-    md5_round(a, b, c, d, block, 3, S14, II14, i);
-    md5_round(a, b, c, d, block, 4, S21, II21, i);
-    md5_round(a, b, c, d, block, 5, S22, II22, i);
-    md5_round(a, b, c, d, block, 6, S23, II23, i);
-    md5_round(a, b, c, d, block, 7, S24, II24, i);
-    md5_round(a, b, c, d, block, 8, S31, II31, i);
-    md5_round(a, b, c, d, block, 9, S32, II32, i);
-    md5_round(a, b, c, d, block, 10, S33, II33, i);
-    md5_round(a, b, c, d, block, 11, S34, II34, i);
-    md5_round(a, b, c, d, block, 12, S41, II41, i);
-    md5_round(a, b, c, d, block, 13, S42, II42, i);
-    md5_round(a, b, c, d, block, 14, S43, II43, i);
-    md5_round(a, b, c, d, block, 15, S44, II44, i);
+    todo!()
+}
+
+fn hex_digest(bytes: &[u8]) -> String {
+    let mut digest = String::new();
+    for byte in bytes {
+        digest.push_str(&format!("{byte:x}"));
+    }
+    digest
 }
