@@ -160,7 +160,7 @@ fn round_n(round: usize, a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, blo
     for i in 0..16 {
         let k = idx(i);
         let s = s_vals[i % 4];
-        let t = sine_const(i * (round - 1));
+        let t = sine_const(i + 16 * (round - 1));
         match i % 4 {
             0 => md5_round(a, b, c, d, block, k, s, t, logic),
             1 => md5_round(d, a, b, c, block, k, s, t, logic),

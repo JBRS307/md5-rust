@@ -1,5 +1,3 @@
-// S consts
-
 use std::sync::OnceLock;
 
 pub fn sine_const(i: usize) -> u64 {
@@ -7,8 +5,8 @@ pub fn sine_const(i: usize) -> u64 {
     let consts = SINE_CONSTS.get_or_init(|| {
         let mut sines: [u64; 64] = [0; 64];
         for i in 0..64 {
-            let sine = f64::sin((i + 1) as f64).floor() as u64;
-            let val = (sine * (1 << 32)) & (u32::MAX as u64);
+            let sine = f64::abs(f64::sin((i + 1) as f64));
+            let val = (sine * (1u64 << 32) as f64).floor() as u64 & (u32::MAX as u64);
             sines[i] = val;
         }
         sines
