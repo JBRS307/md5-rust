@@ -1,4 +1,4 @@
-use crate::sine_consts::*;
+use crate::consts::*;
 
 const A: u32 = 0x67452301;
 const B: u32 = 0xefcdab89;

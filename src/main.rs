@@ -1,5 +1,5 @@
+mod consts;
 mod rounds;
-mod sine_consts;
 
 use crate::rounds::Md5Hash;
 
