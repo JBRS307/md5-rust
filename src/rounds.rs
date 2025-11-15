@@ -32,6 +32,33 @@ impl Md5Hash {
     }
 }
 
+fn pad_message(mut bytes: Vec<u8>) -> Vec<u8> {
+    let original_length = bytes.len() as u64;
+    if bytes.len() % 64 != 56 {
+        bytes.push(0x80);
+        while bytes.len() % 64 != 56 {
+            bytes.push(0);
+        }
+    }
+    bytes.extend((original_length * 8).to_le_bytes());
+    bytes
+}
+
+fn split_to_blocks(bytes: Vec<u8>) -> Vec<[u32; 16]> {
+    assert_eq!(bytes.len() % 64, 0);
+
+    let mut blocks = vec![];
+    for i in (0..bytes.len()).step_by(64) {
+        let mut block = vec![];
+        for j in (i..i + 64).step_by(4) {
+            let word = u32::from_le_bytes([bytes[j], bytes[j + 1], bytes[j + 2], bytes[j + 3]]);
+            block.push(word);
+        }
+        blocks.push(block.try_into().unwrap());
+    }
+    blocks
+}
+
 fn process_msg(blocks: Vec<[u32; 16]>) -> Vec<u8> {
     let mut a = A as u64;
     let mut b = B as u64;
@@ -49,10 +76,10 @@ fn process_msg(blocks: Vec<[u32; 16]>) -> Vec<u8> {
         let cc = c;
         let dd = d;
 
-        round1(&mut a, &mut b, &mut c, &mut d, &block);
-        round2(&mut a, &mut b, &mut c, &mut d, &block);
-        round3(&mut a, &mut b, &mut c, &mut d, &block);
-        round4(&mut a, &mut b, &mut c, &mut d, &block);
+        round_n(1, &mut a, &mut b, &mut c, &mut d, &block);
+        round_n(2, &mut a, &mut b, &mut c, &mut d, &block);
+        round_n(3, &mut a, &mut b, &mut c, &mut d, &block);
+        round_n(4, &mut a, &mut b, &mut c, &mut d, &block);
 
         a = (a + aa) & (u32::MAX as u64);
         b = (b + bb) & (u32::MAX as u64);
@@ -71,33 +98,6 @@ fn process_msg(blocks: Vec<[u32; 16]>) -> Vec<u8> {
     output.extend(d.to_le_bytes());
 
     output
-}
-fn pad_message(mut bytes: Vec<u8>) -> Vec<u8> {
-    let original_length = bytes.len() as u64;
-    if bytes.len() % 64 != 56 {
-        bytes.push(0x80);
-        while bytes.len() % 64 != 56 {
-            bytes.push(0);
-        }
-    }
-    println!("{:?}", (original_length * 8).to_le_bytes());
-    bytes.extend((original_length * 8).to_le_bytes());
-    bytes
-}
-
-fn split_to_blocks(bytes: Vec<u8>) -> Vec<[u32; 16]> {
-    assert_eq!(bytes.len() % 64, 0);
-
-    let mut blocks = vec![];
-    for i in (0..bytes.len()).step_by(64) {
-        let mut block = vec![];
-        for j in (i..i + 64).step_by(4) {
-            let word = u32::from_le_bytes([bytes[j], bytes[j + 1], bytes[j + 2], bytes[j + 3]]);
-            block.push(word);
-        }
-        blocks.push(block.try_into().unwrap());
-    }
-    blocks
 }
 
 fn rotate_left(x: u64, s: u64) -> u64 {
@@ -140,26 +140,41 @@ fn md5_round(
     *a = (*b + temp) & (u32::MAX as u64);
 }
 
-fn round1(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    todo!()
-}
+fn round_n(round: usize, a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
+    let idx = match round {
+        1 => index_round1,
+        2 => index_round2,
+        3 => index_round3,
+        4 => index_round4,
+        _ => unreachable!(),
+    };
+    let logic = match round {
+        1 => f,
+        2 => g,
+        3 => h,
+        4 => i,
+        _ => unreachable!(),
+    };
 
-fn round2(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    todo!()
-}
-
-fn round3(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    todo!()
-}
-
-fn round4(a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
-    todo!()
+    let s_vals = rotate_values(round);
+    for i in 0..16 {
+        let k = idx(i);
+        let s = s_vals[i % 4];
+        let t = sine_const(i * (round - 1));
+        match i % 4 {
+            0 => md5_round(a, b, c, d, block, k, s, t, logic),
+            1 => md5_round(d, a, b, c, block, k, s, t, logic),
+            2 => md5_round(c, d, a, b, block, k, s, t, logic),
+            3 => md5_round(b, c, d, a, block, k, s, t, logic),
+            _ => unreachable!(),
+        }
+    }
 }
 
 fn hex_digest(bytes: &[u8]) -> String {
     let mut digest = String::new();
     for byte in bytes {
-        digest.push_str(&format!("{byte:x}"));
+        digest.push_str(&format!("{byte:02x}"));
     }
     digest
 }

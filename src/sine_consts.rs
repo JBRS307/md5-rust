@@ -16,30 +16,23 @@ pub fn sine_const(i: usize) -> u64 {
     consts[i]
 }
 
-fn index_round1(i: usize) -> usize {
+pub fn index_round1(i: usize) -> usize {
     i
 }
 
-fn index_round2(i: usize) -> usize {
+pub fn index_round2(i: usize) -> usize {
     (i * 5 + 1) % 16
 }
 
-fn index_round3(i: usize) -> usize {
+pub fn index_round3(i: usize) -> usize {
     (3 * i + 5) % 16
 }
 
-fn index_round4(i: usize) -> usize {
+pub fn index_round4(i: usize) -> usize {
     (7 * i) % 16
 }
 
-pub fn index_function(round: usize) -> fn(usize) -> usize {
-    static INDEX_FUNCTIONS: OnceLock<[fn(usize) -> usize; 4]> = OnceLock::new();
-    let functions =
-        INDEX_FUNCTIONS.get_or_init(|| [index_round1, index_round2, index_round3, index_round4]);
-    functions[round]
-}
-
-pub fn rotate_value(round: usize, i: usize) -> u64 {
+pub fn rotate_values(round: usize) -> [u64; 4] {
     static ROTATE_VALUES: OnceLock<[[u64; 4]; 4]> = OnceLock::new();
     let values = ROTATE_VALUES.get_or_init(|| {
         [
@@ -49,5 +42,5 @@ pub fn rotate_value(round: usize, i: usize) -> u64 {
             [6, 10, 15, 21],
         ]
     });
-    values[round][i]
+    values[round - 1]
 }
