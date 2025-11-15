@@ -174,7 +174,7 @@ fn round_n(round: usize, a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, blo
 }
 
 fn hex_digest(bytes: &[u8]) -> String {
-    let mut digest = String::new();
+    let mut digest = String::with_capacity(32);
     for byte in bytes {
         digest.push_str(&format!("{byte:02x}"));
     }
