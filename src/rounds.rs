@@ -34,11 +34,9 @@ impl Md5Hash {
 
 fn pad_message(mut bytes: Vec<u8>) -> Vec<u8> {
     let original_length = bytes.len() as u64;
-    if bytes.len() % 64 != 56 {
-        bytes.push(0x80);
-        while bytes.len() % 64 != 56 {
-            bytes.push(0);
-        }
+    bytes.push(0x80);
+    while bytes.len() % 64 != 56 {
+        bytes.push(0);
     }
     bytes.extend((original_length * 8).to_le_bytes());
     bytes
