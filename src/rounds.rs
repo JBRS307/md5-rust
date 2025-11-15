@@ -6,7 +6,7 @@ const C: u32 = 0x98badcfe;
 const D: u32 = 0x10325476;
 
 pub struct Md5Hash {
-    bytes: Vec<u8>,
+    bytes: [u8; 16],
     hex_digest: String,
 }
 
@@ -47,17 +47,17 @@ fn split_to_blocks(bytes: Vec<u8>) -> Vec<[u32; 16]> {
 
     let mut blocks = vec![];
     for i in (0..bytes.len()).step_by(64) {
-        let mut block = vec![];
-        for j in (i..i + 64).step_by(4) {
+        let mut block: [u32; 16] = [0; 16];
+        for (k, j) in (i..i + 64).step_by(4).enumerate() {
             let word = u32::from_le_bytes([bytes[j], bytes[j + 1], bytes[j + 2], bytes[j + 3]]);
-            block.push(word);
+            block[k] = word
         }
-        blocks.push(block.try_into().unwrap());
+        blocks.push(block);
     }
     blocks
 }
 
-fn process_msg(blocks: Vec<[u32; 16]>) -> Vec<u8> {
+fn process_msg(blocks: Vec<[u32; 16]>) -> [u8; 16] {
     let mut a = A as u64;
     let mut b = B as u64;
     let mut c = C as u64;
@@ -89,12 +89,16 @@ fn process_msg(blocks: Vec<[u32; 16]>) -> Vec<u8> {
     let c = c as u32;
     let d = d as u32;
 
-    let mut output = vec![];
-    output.extend(a.to_le_bytes());
-    output.extend(b.to_le_bytes());
-    output.extend(c.to_le_bytes());
-    output.extend(d.to_le_bytes());
+    let mut output = [0u8; 16];
+    let a_bytes: [u8; 4] = a.to_le_bytes();
+    let b_bytes: [u8; 4] = b.to_le_bytes();
+    let c_bytes: [u8; 4] = c.to_le_bytes();
+    let d_bytes: [u8; 4] = d.to_le_bytes();
 
+    output[0..4].copy_from_slice(&a_bytes);
+    output[4..8].copy_from_slice(&b_bytes);
+    output[8..12].copy_from_slice(&c_bytes);
+    output[12..16].copy_from_slice(&d_bytes);
     output
 }
 
