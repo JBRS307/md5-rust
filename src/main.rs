@@ -4,9 +4,17 @@ mod rounds;
 use crate::rounds::Md5Hash;
 
 fn main() {
-    let test1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let test1_bytes = test1.as_bytes();
-    let hash1 = Md5Hash::hash(test1_bytes);
-    println!("{:?}", hash1.bytes());
-    println!("{}", hash1.hex_digest());
+    let msg = "aaaa";
+    println!("{msg}");
+    let msg_bytes = msg.as_bytes();
+    let hash = Md5Hash::hash(msg_bytes);
+    println!("{:?}", hash.bytes());
+    println!("{}", hash.hex_digest());
+
+    let msg = "a".repeat(70);
+    println!("{msg}");
+    let msg_bytes = msg.as_bytes();
+    let hash = Md5Hash::hash(msg_bytes);
+    println!("{:?}", hash.bytes());
+    println!("{}", hash.hex_digest());
 }

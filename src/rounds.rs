@@ -58,17 +58,11 @@ fn split_to_blocks(bytes: Vec<u8>) -> Vec<[u32; 16]> {
 }
 
 fn process_msg(blocks: Vec<[u32; 16]>) -> [u8; 16] {
-    let mut a = A as u64;
-    let mut b = B as u64;
-    let mut c = C as u64;
-    let mut d = D as u64;
+    let mut a = A;
+    let mut b = B;
+    let mut c = C;
+    let mut d = D;
     for block in blocks {
-        let block: [u64; 16] = block
-            .iter()
-            .map(|elem| *elem as u64)
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
         let aa = a;
         let bb = b;
         let cc = c;
@@ -79,15 +73,11 @@ fn process_msg(blocks: Vec<[u32; 16]>) -> [u8; 16] {
         round_n(3, &mut a, &mut b, &mut c, &mut d, &block);
         round_n(4, &mut a, &mut b, &mut c, &mut d, &block);
 
-        a = (a + aa) & (u32::MAX as u64);
-        b = (b + bb) & (u32::MAX as u64);
-        c = (c + cc) & (u32::MAX as u64);
-        d = (d + dd) & (u32::MAX as u64);
+        a = u32::overflowing_add(a, aa).0;
+        b = u32::overflowing_add(b, bb).0;
+        c = u32::overflowing_add(c, cc).0;
+        d = u32::overflowing_add(d, dd).0;
     }
-    let a = a as u32;
-    let b = b as u32;
-    let c = c as u32;
-    let d = d as u32;
 
     let mut output = [0u8; 16];
     let a_bytes: [u8; 4] = a.to_le_bytes();
@@ -102,47 +92,49 @@ fn process_msg(blocks: Vec<[u32; 16]>) -> [u8; 16] {
     output
 }
 
-fn rotate_left(x: u64, s: u64) -> u64 {
-    ((x << s) | (x >> (32 - s))) & (u32::MAX as u64)
+fn rotate_left(x: u32, s: u32) -> u32 {
+    (x << s) | (x >> (32 - s))
 }
 
-fn f(x: u64, y: u64, z: u64) -> u64 {
-    const FULL: u64 = u32::MAX as u64;
-    (x & y) | ((!x & FULL) & z)
+fn f(x: u32, y: u32, z: u32) -> u32 {
+    (x & y) | (!x & z)
 }
 
-fn g(x: u64, y: u64, z: u64) -> u64 {
-    const FULL: u64 = u32::MAX as u64;
-    (x & z) | (y & (!z & FULL))
+fn g(x: u32, y: u32, z: u32) -> u32 {
+    (x & z) | (y & !z)
 }
 
-fn h(x: u64, y: u64, z: u64) -> u64 {
+fn h(x: u32, y: u32, z: u32) -> u32 {
     x ^ y ^ z
 }
 
-fn i(x: u64, y: u64, z: u64) -> u64 {
-    const FULL: u64 = u32::MAX as u64;
-    y ^ (x | (!z & FULL))
+fn i(x: u32, y: u32, z: u32) -> u32 {
+    y ^ (x | !z)
 }
 
 #[allow(clippy::too_many_arguments)]
 fn md5_round(
-    a: &mut u64,
-    b: &mut u64,
-    c: &mut u64,
-    d: &mut u64,
-    block: &[u64],
+    a: &mut u32,
+    b: &mut u32,
+    c: &mut u32,
+    d: &mut u32,
+    block: &[u32],
     k: usize,
-    s: u64,
-    t: u64,
-    logic: fn(u64, u64, u64) -> u64,
+    s: u32,
+    t: u32,
+    logic: fn(u32, u32, u32) -> u32,
 ) {
-    let temp = (*a + logic(*b, *c, *d) + block[k] + t) & (u32::MAX as u64);
+    let temp = u32::overflowing_add(*a, logic(*b, *c, *d))
+        .0
+        .overflowing_add(block[k])
+        .0
+        .overflowing_add(t)
+        .0;
     let temp = rotate_left(temp, s);
-    *a = (*b + temp) & (u32::MAX as u64);
+    *a = u32::overflowing_add(*b, temp).0;
 }
 
-fn round_n(round: usize, a: &mut u64, b: &mut u64, c: &mut u64, d: &mut u64, block: &[u64]) {
+fn round_n(round: usize, a: &mut u32, b: &mut u32, c: &mut u32, d: &mut u32, block: &[u32]) {
     let idx = match round {
         1 => index_round1,
         2 => index_round2,
